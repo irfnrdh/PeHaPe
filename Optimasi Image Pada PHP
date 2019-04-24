@@ -1,0 +1,118 @@
+#Optimasi Image 
+
+[24 April 2019] [irfnrdh]
+
+Ref : https://stackoverflow.com/questions/9839150/image-compression-in-php
+Ref : https://cloudinary.com/blog/image_optimization_in_php
+
+
+1. Fungsi PHP  imagejpeg()
+
+<?php
+
+      function compress_image($source_url, $destination_url, $quality) {
+
+       $info = getimagesize($source_url);
+
+        if ($info['mime'] == 'image/jpeg')
+              $image = imagecreatefromjpeg($source_url);
+
+        elseif ($info['mime'] == 'image/gif')
+              $image = imagecreatefromgif($source_url);
+
+      elseif ($info['mime'] == 'image/png')
+              $image = imagecreatefrompng($source_url);
+
+        imagejpeg($image, $destination_url, $quality);
+    return $destination_url;
+    }
+
+?>
+
+2. Ekstensi PHP Imagick
+<?php
+
+// Create new imagick object
+$im = new Imagick("File_Path/Image_Name.jpg");
+
+// Optimize the image layers
+$im->optimizeImageLayers();
+
+// Compression and quality
+$im->setImageCompression(Imagick::COMPRESSION_JPEG);
+$im->setImageCompressionQuality(25);
+
+// Write the image back
+$im->writeImages("File_Path/Image_Opti.jpg", true);
+
+?>
+
+3. Stackoverflow  (it's not realy optimized but it should do the trick)
+public function resizePicture($path, $new_path, $new_width, $new_height, $proportion = false) {
+    $size = getimagesize($path);
+    $x = 0;
+    $y = 0;
+
+    switch($size['mime']) {
+        case 'image/jpeg':
+            $picture = imagecreatefromjpeg($path);
+        break;
+        case 'image/png':
+            $picture = imagecreatefrompng($path);
+        break;
+        case 'image/gif':
+            $picture = imagecreatefromgif($path);
+        break;
+        default:
+            return false;
+        break;
+    }
+
+    $width = $size[0];
+    $height = $size[1];
+
+    $frame = imagecreatetruecolor($new_width, $new_height);
+    if($size['mime'] == 'image/jpeg') {
+        $bg = imagecolorallocate($frame, 255, 255, 255);
+        imagefill($frame, 0, 0, $bg);
+    } else if($size['mime'] == 'image/gif' or $size['mime'] == 'image/png') {
+        imagealphablending($picture, false);
+        imagesavealpha($picture, true);
+        imagealphablending($frame, false);
+        imagesavealpha($frame, true);
+    }
+
+    if($width < $new_width and $height < $new_height) {
+        $x = ($new_width - $width) / 2;
+        $y = ($new_height - $height) / 2;
+        imagecopy($frame, $picture, $x, $y, 0, 0, $width, $height);
+    } else {
+        if($proportion and $width != $height) {
+            if($width > $height) {
+                $old_height = $new_height;
+                $new_height = $height * $new_width / $width;
+                $y = abs($old_height - $new_height) / 2;
+            } else {
+                $old_width = $new_width;
+                $new_width = $width * $new_height / $height;
+                $x = abs($old_width - $new_width) / 2;
+            }
+        }
+        imagecopyresampled($frame, $picture, $x, $y, 0, 0, $new_width, $new_height, $width, $height);
+    }
+
+    switch($size['mime']) {
+        case 'image/jpeg':
+            imagejpeg($frame, $new_path, 85);
+        break;
+        case 'image/png':
+            imagepng($frame, $new_path, 8);
+        break;
+        case 'image/gif':
+            imagegif($frame, $new_path);
+        break;
+        default:
+            return false;
+        break;
+    }
+}
